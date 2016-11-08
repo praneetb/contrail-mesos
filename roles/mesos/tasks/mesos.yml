@@ -1,0 +1,92 @@
+---
+
+# == Work Dir for replicated log
+- name: Create work dir
+  file: path={{ mesos_work_dir }} state=directory
+
+- name: Create dirs
+  file:
+  args:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ mesos_cni_config_dir }}"
+    - "{{ mesos_cni_plugins_dir }}"
+    - "{{ mesos_modules_config_dir }}"
+    - "{{ mesos_modules_libs_dir }}"
+  when: mesos_install_mode == "slave"
+
+# == Remove default configs
+- name: Remove Default Mesos Configs
+  file: state=absent path=/etc/mesos/
+
+- name: Remove Default Mesos-Master Config
+  file: state=absent path=/etc/mesos-master/
+
+- name: Remove Default Mesos-Slave Config
+  file: state=absent path=/etc/mesos-slave/
+
+# == Configure and recreate
+- name: Mesos default config file
+  template: src=conf-mesos.j2 dest=/etc/default/mesos
+  notify:
+    - Restart mesos-master
+    - Restart mesos-slave
+
+- name: Mesos Master config file
+  template: src=conf-mesos-master.j2 dest=/etc/default/mesos-master
+  when: (mesos_install_mode == "master" or mesos_install_mode == "master-slave")
+  notify:
+    - Restart mesos-master
+
+- name: Mesos Slave config file
+  template: src=conf-mesos-slave.j2 dest=/etc/default/mesos-slave
+  when: (mesos_install_mode == "slave" or mesos_install_mode == "master-slave")
+  notify:
+    - Restart mesos-slave
+
+- file: path={{ slave_hook_module_path }} state=directory
+
+- name: Mesos master upstart script
+  template: src=init-mesos-master.j2 dest=/etc/init/mesos-master.conf
+  when:
+    - mesos_install_mode == "master" or mesos_install_mode == "master-slave"
+    - ansible_os_family == "Debian"
+  notify:
+    - Restart mesos-master
+
+- name: Mesos slave upstart script
+  template: src=init-mesos-slave.j2 dest=/etc/init/mesos-slave.conf
+  when:
+    - mesos_install_mode == "master" or mesos_install_mode == "master-slave"
+    - ansible_os_family == "Debian"
+  notify:
+    - Restart mesos-slave
+
+- name: Mesos master systemd script 2222222
+  template: src=mesos-master.service.j2 dest=/etc/systemd/system/mesos-master.service
+  when:
+    - mesos_install_mode == "master" or mesos_install_mode == "master-slave"
+    - ansible_os_family == "RedHat"
+  notify:
+    - Restart mesos-master
+
+- name: reload systemd
+  command: systemctl --system daemon-reload
+  when: ansible_os_family == "RedHat"
+
+- name: Mesos slave systemd script
+  template: src=mesos-slave.service.j2 dest=/etc/systemd/system/mesos-slave.service
+  when:
+    - mesos_install_mode == "master" or mesos_install_mode == "master-slave"
+    - ansible_os_family == "RedHat"
+  notify:
+    - Restart mesos-slave
+
+- name: reload systemd
+  command: systemctl --system daemon-reload
+  when: ansible_os_family == "RedHat"
+
+- debug: msg="OS is {{ansible_os_family}}"
+
+- debug: msg="Mode is {{mesos_install_mode}}"

@@ -1,0 +1,32 @@
+---
+
+mesos_install_mode: "none" # {master|slave|master-slave|none}
+mesos_version: "fork"
+
+# conf file settings
+mesos_cluster_name: "mesos_cluster"
+mesos_ip: "{{ansible_default_ipv4.address}}"
+mesos_hostname: "{{ ansible_hostname }}"
+mesos_log_location: "/var/log/mesos"
+mesos_ulimit: "-n 8192"
+mesos_work_dir: "/var/mesos"
+mesos_quorum: "1"
+mesos_zookeeper_hostnames: "{{ groups['masters'][0] }}:{{ zookeeper_client_port }}"
+mesos_zookeeper_masters: "zk://{{ mesos_zookeeper_hostnames }}/mesos"
+mesos_owner: root
+mesos_group: root
+mesos_git: https://github.com/codilime/mesos
+mesos_src_workdir: "/usr/src"
+mesos_src: "{{mesos_src_workdir}}/mesos-{{mesos_version}}"
+mesos_bundle: "{{mesos_src_workdir}}/mesos.git.bundle"
+mesos_local_dir: /tmp/mesos
+
+# Containerizer
+mesos_executor_timeout: "5mins"
+mesos_install_from_package: true
+
+# Additional configurations
+mesos_additional_configs: []
+  # For example:
+  # - name: FOO
+  #   value: bar

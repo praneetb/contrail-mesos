@@ -1,0 +1,19 @@
+[cluster:children]
+masters
+nodes
+
+[mesos:children]
+masters
+slaves
+
+[masters]
+10.84.9.44   ansible_connection=ssh ansible_user=root ansible_ssh_private_key_file=~/.ssh/id_rsa
+
+[slaves]
+10.84.9.44   ansible_connection=ssh ansible_user=root ansible_ssh_private_key_file=~/.ssh/id_rsa
+
+[marathon:children]
+masters
+
+[nodes:children]
+slaves

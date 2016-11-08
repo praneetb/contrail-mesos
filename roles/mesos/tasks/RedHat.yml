@@ -1,0 +1,13 @@
+---
+
+- name: Install os packages
+  yum: name={{ package }} state=present
+  with_items:
+    - wget
+    - curl
+    - unzip
+    - libselinux-python
+    - python-setuptools
+    - java-1.8.0-openjdk
+  loop_control:
+    loop_var: package

@@ -1,0 +1,10 @@
+---
+
+- include: mesos.yml
+
+- include: opencontrail.yml
+
+- include: cni.yml
+
+- include: marathon.yml
+

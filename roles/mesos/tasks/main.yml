@@ -1,0 +1,19 @@
+---
+
+- include: "{{ item }}"
+  with_first_found:
+   - "{{ ansible_distribution }}.yml"
+   - "{{ ansible_os_family }}.yml"
+  when: mesos_install_mode != "none"
+
+- include: common.yml
+
+- include: mesos-install.yml
+  when: not mesos_install_from_package and mesos_install_mode != "none"
+
+- include: mesos-install-package.yml
+  when: mesos_install_from_package and mesos_install_mode != "none"
+
+- include: mesos.yml
+  when: mesos_install_mode != "none"
+

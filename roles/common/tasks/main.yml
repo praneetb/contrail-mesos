@@ -1,0 +1,43 @@
+---
+
+- name: Get os_version from /etc/os-release
+  raw: "grep '^VERSION_ID=' /etc/os-release | sed s'/VERSION_ID=//'"
+  register: os_version
+  always_run: yes
+
+- name: Get distro name from /etc/os-release
+  raw: "grep '^NAME=' /etc/os-release | sed s'/NAME=//'"
+  register: distro
+  always_run: yes
+
+- name: Copy known_hosts file
+  copy: src="{{ tmp_known_hosts_file }}" dest="/tmp/{{ tmp_known_hosts_file }}"
+
+- name: Add known hosts
+  shell: cat "/tmp/{{ tmp_known_hosts_file }}" >> ~/.ssh/known_hosts
+
+- name: Add known hosts
+  become: no
+  shell: cat "/tmp/{{ tmp_known_hosts_file }}" >> ~/.ssh/known_hosts
+
+- name: "Get python pip provisioning scripts"
+  get_url: dest=/tmp/get_pip.py force=yes url="https://bootstrap.pypa.io/get-pip.py"
+
+- name: "Install newest pip"
+  become: yes
+  shell: python get_pip.py
+  args:
+    chdir: /tmp
+
+- include: "{{ item }}"
+  with_first_found:
+   - "{{ ansible_distribution }}.yml"
+   - "{{ ansible_os_family }}.yml"
+
+- name: "Enable SSL/HTTPS/SNI for pip"
+  pip: name={{ item }} state=latest
+  with_items:
+    - pyopenssl
+    - pyasn1
+    - ndg-httpsclient
+    - urllib3
