@@ -1,0 +1,4 @@
+---
+
+marathon_http_port: 8880
+marathon_packages_path: "marathon"

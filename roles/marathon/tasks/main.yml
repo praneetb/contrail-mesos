@@ -1,0 +1,53 @@
+---
+
+- include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}_vars.yml"
+    - "{{ ansible_os_family }}_vars.yml"
+
+- name: Add mesos repo
+  yum: name=http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
+
+- name: Install marathon
+  package: pkg={{ item }} state=latest
+  with_items:
+    - marathon
+
+- name: Install net-tools
+  package: name=net-tools state=latest
+
+- name: run ldconfig
+  action: command /sbin/ldconfig
+
+- name: Create init wrapper
+  copy: dest=/usr/bin/ src=marathon-init-wrapper force=yes mode=a+x
+
+- name: Create upstart config
+  copy: src=marathon.conf dest=/etc/init/marathon.conf
+  when: ansible_os_family == "Debian"
+
+- name: Create systemd config
+  copy: src=marathon.service dest=/etc/systemd/system
+  when: ansible_os_family == "RedHat"
+
+- name: Enable marathon service
+  service: name=marathon enabled=yes
+
+- name: Create config directory
+  file: path=/etc/marathon/conf state=directory
+
+- name: Configure Marathon service
+  template: src=hostname-conf.j2 dest=/etc/marathon/conf/hostname
+  notify: Restart Marathon
+
+- name: Configure Marathon service
+  template: src=zk-conf.j2 dest=/etc/marathon/conf/zk
+  notify: Restart Marathon
+
+- name: Configure Marathon service
+  template: src=master-conf.j2 dest=/etc/marathon/conf/master
+  notify: Restart Marathon
+
+- name: Configure Marathon service
+  template: src=http_port-conf.j2 dest=/etc/marathon/conf/http_port
+  notify: Restart Marathon

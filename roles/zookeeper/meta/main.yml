@@ -1,5 +1,5 @@
 ---
 
 dependencies:
-  - { role: common }
-  - { role: docker }
+  - { role: common, when: dependencies == 'yes' }
+  - { role: docker, when: dependencies == 'yes' }
