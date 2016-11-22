@@ -1,0 +1,7 @@
+---
+
+- include: master.yml
+  when: node_type == "master" or node_type == "master-slave"
+
+- include: nodes.yml
+  when: node_type == "node" or node_type == "master-slave"

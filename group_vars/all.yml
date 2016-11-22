@@ -19,8 +19,8 @@ contrail_private_subnet: "{{ private_subnet | default('10.32.0.0/16') }}"
 # hosts that nodes should know to avoid fingerprint checking
 tmp_known_hosts_file: "tmp_known_hosts_file"
 
-mesos_master_port: 5050
-mesos_slave_port: 5051
+mesos_master_port: 8881
+mesos_slave_port: 8882
 mesos_cni_config_dir: /var/lib/mesos/cni/config
 mesos_cni_plugins_dir: /var/lib/mesos/cni/plugins
 mesos_modules_config_dir: /var/lib/mesos/modules/config

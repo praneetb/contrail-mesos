@@ -1,0 +1,125 @@
+---
+
+- name: Create dirs
+  file:
+  args:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ mesos_cni_config_dir }}"
+    - "{{ mesos_cni_plugins_dir }}"
+    - "{{ mesos_modules_config_dir }}"
+    - "{{ mesos_modules_libs_dir }}"
+  when: mesos_install_mode == "slave" or mesos_install_mode == "master-slave"
+
+- name: Copy hook module config
+  template:
+  args:
+    src: opencontrail_hook_module_config.json.j2
+    dest: "{{ mesos_modules_config_dir }}/opencontrail_hook_module_config.json"
+
+- name: Add protobub repo for Debian
+  apt_repository: repo="ppa:5-james-t/protobuf-ppa"
+  when: ansible_os_family == "Debian"
+
+- name: Install hook module dependencies
+  yum:
+  args:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - boost-devel
+    - glog-devel
+    - gflags-devel
+    - libcurl-devel
+  when: ansible_os_family == "RedHat"
+
+- name: get protobuf
+  get_url: url=https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.bz2 dest=/tmp force=yes
+  when: ansible_os_family == "RedHat"
+
+- name: extract protobuf
+  command: tar xjvf protobuf-2.6.1.tar.bz2
+  args:
+    chdir: /tmp
+  when: ansible_os_family == "RedHat"
+
+- name: compile and install protobuf
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/protobuf-2.6.1"
+  with_items:
+    - bash autogen.sh
+    - ./configure --prefix=/usr
+    - make -j {{ (ansible_processor_vcpus) | int }}
+#    - make check
+    - make install
+  when: ansible_os_family == "RedHat"
+
+- name: reload libs
+  command: ldconfig
+  when: ansible_os_family == "RedHat"
+
+- name: Install hook module dependencies
+  apt:
+  args:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - libboost-dev
+    - libprotobuf-dev
+    - libgoogle-glog-dev
+  when: ansible_os_family == "Debian"
+
+- name: Create /var/run/netns dir
+  file: path=/var/run/netns state=directory
+
+- name: Download cni-opencontrail-plugin repo
+  git:
+  args:
+    repo: "https://github.com/codilime/cni-opencontrail-plugin.git"
+    dest: "{{ hook_path }}/src/github.com/codilime/cni-opencontrail-plugin"
+    force: yes
+    version: "{{ cni_opencontrail_plugin_version }}"
+
+- name: Compile hook module
+  shell: "{{ item }}"
+  args:
+    chdir: "{{ hook_path }}/src/github.com/codilime/cni-opencontrail-plugin"
+  with_items:
+    - g++ -c -lmesos -std=c++11 -fpic -o opencontrail_hook_module.o opencontrail_hook_module.cpp
+    - gcc -shared -o "{{ mesos_modules_libs_dir }}/libopencontrailhookmodule.so" opencontrail_hook_module.o
+
+- name: Create cni dirs
+  file:
+  args:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{mesos_cni_config_dir}}"
+    - "{{mesos_cni_plugins_dir}}"
+  tags:
+    - cni-configs
+
+- name: Copy cni configs
+  template:
+  args:
+    src: "{{ item }}.j2"
+    dest: "{{ mesos_cni_config_dir }}/{{ item }}"
+  with_items:
+    - cni-opencontrail-plugin.conf
+  tags:
+    - cni-configs
+
+- name: Add OpenContrailHookModule to Mesos Agent hooks option
+  lineinfile:
+    dest: /etc/default/mesos-slave
+    line: "{{ item }}"
+  with_items:
+    - export MESOS_HOOKS=${MESOS_HOOKS+$MESOS_HOOKS,}OpenContrailHookModule
+    - export MESOS_HTTP_COMMAND_EXECUTOR=1
+
+- name: Restart mesos-slave
+  service: name=mesos-slave state=restarted
+  tags:
+    - cni-configs

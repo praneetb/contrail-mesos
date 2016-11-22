@@ -14,7 +14,7 @@
     - "{{ mesos_cni_plugins_dir }}"
     - "{{ mesos_modules_config_dir }}"
     - "{{ mesos_modules_libs_dir }}"
-  when: mesos_install_mode == "slave"
+  when: mesos_install_mode == "slave" or mesos_install_mode == "master-slave"
 
 # == Remove default configs
 - name: Remove Default Mesos Configs
