@@ -35,7 +35,7 @@
   set_fact:
     docker_config_net: "{{ docker_config_dir }}/docker"
     docker_env_export: "export "
-  when: init_system == "upstart"
+  when: ansible_os_family == "Debian"
 
 - name: Verify docker config files exists
   file: path={{ docker_config_dir }}/{{ item }} state=touch
@@ -48,7 +48,7 @@
   lineinfile: dest={{ docker_config_dir }}/docker regexp=^OPTIONS= line=OPTIONS="'--selinux-enabled --log-level=warn'"
   notify:
     - restart docker
-  when: init_system == "upstart"
+  when: ansible_os_family == "Debian"
 
 - name: Install http_proxy into docker(-network)
   lineinfile: dest={{ docker_config_net }} regexp="^{{ docker_env_export }}http_proxy=" line="{{docker_env_export}}http_proxy={{ http_proxy }}"
