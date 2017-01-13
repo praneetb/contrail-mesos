@@ -10,7 +10,7 @@
     - "{{ mesos_cni_plugins_dir }}"
     - "{{ mesos_modules_config_dir }}"
     - "{{ mesos_modules_libs_dir }}"
-  when: mesos_install_mode == "slave" or mesos_install_mode == "master-slave"
+  when: node_type == "slave" or node_type == "master-slave"
 
 - name: Copy hook module config
   template:
